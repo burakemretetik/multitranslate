@@ -1,10 +1,7 @@
-!pip install transformers
-
+import streamlit as st
 from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
-from transformers import logging
-logging.set_verbosity_error()  # Transformatörlerden gelen uyarıları ve hataların baskılanması.
 
-# Modelin ve tokenizer'ın yüklenmesi
+@st.cache_resource
 def load_model_and_tokenizer():
     model_name = 'facebook/m2m100_418M'
     tokenizer = M2M100Tokenizer.from_pretrained(model_name)
@@ -13,7 +10,6 @@ def load_model_and_tokenizer():
 
 model, tokenizer = load_model_and_tokenizer()
 
-# M2M100 modelinin desteklediği diller
 available_languages = {
     "Afrikaans": "af", "Amharic": "am", "Arabic": "ar", "Asturian": "ast",
     "Azerbaijani": "az", "Bashkir": "ba", "Belarusian": "be", "Bulgarian": "bg",
@@ -43,12 +39,6 @@ available_languages = {
     "Yoruba": "yo", "Yiddish": "yi", "Chinese": "zh", "Zulu": "zu"
 }
 
-def display_languages():
-    print("Available languages:")
-    for lang, code in available_languages.items():
-        print(f"{lang}: {code}")
-
-# Çeviri fonksiyonu
 def translate(texts, src_lang, tgt_lang):
     tokenizer.src_lang = src_lang
     encoded_texts = tokenizer(texts, return_tensors="pt", padding=True)
@@ -56,34 +46,19 @@ def translate(texts, src_lang, tgt_lang):
     translated_texts = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
     return translated_texts
 
-# Dil kodunun sorulması
-def get_language_code(prompt):
-    while True:
-        code = input(prompt).strip()
-        if code in available_languages.values():
-            return code
-        else:
-            print("Invalid language code. Please try again.")
+st.title("M2M100 Language Translator")
+st.write("Translate text from one language to another using the M2M100 model.")
 
-# Main fonksiyonu
-def main():
-    display_languages()
+src_lang = st.selectbox("Select source language", list(available_languages.keys()))
+tgt_lang = st.selectbox("Select target language", list(available_languages.keys()))
 
-    src_lang = get_language_code("Enter the source language code: ")
-    tgt_lang = get_language_code("Enter the target language code: ")
+text = st.text_area("Enter text to translate")
 
-    print("The model is ready. Enter text to translate (type 'stop' to finish):")
-
-    while True:
-        text = input("> ").strip()
-
-        if not text or text.lower() == 'stop':
-            print("Session ended.")
-            break
-
-        translated_texts = translate([text], src_lang, tgt_lang)
+if st.button("Translate"):
+    if text:
+        translated_texts = translate([text], available_languages[src_lang], available_languages[tgt_lang])
+        st.write("Translated Text:")
         for translated_text in translated_texts:
-            print(f"Translated: {translated_text}")
-
-if __name__ == "__main__": #Çeviri için çalıştırın.
-    main()
+            st.write(translated_text)
+    else:
+        st.write("Please enter text to translate.")
